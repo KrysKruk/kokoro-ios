@@ -152,29 +152,21 @@ public final class KokoroTTS {
   /// Generates audio from text using the specified voice and parameters.
   ///
   /// This method performs the complete TTS pipeline:
-  /// 1. Converts text to phonemes (G2P)
-  /// 2. Tokenizes and encodes phonemes
-  /// 3. Predicts duration and prosody
-  /// 4. Generates audio waveform
+  /// 1. Tokenizes and encodes phonemes
+  /// 2. Predicts duration and prosody
+  /// 3. Generates audio waveform
   ///
   /// - Parameters:
   ///   - voice: Voice embedding array (contains speaker characteristics)
-  ///   - language: Target language for pronunciation
-  ///   - text: Input text to synthesize
+  ///   - phonemizedText: 
   ///   - speed: Speech speed multiplier (1.0 = normal, >1.0 = faster, <1.0 = slower)
   /// - Returns: Array of audio samples as Float values
   /// - Throws: `KokoroTTSError.tooManyTokens` if text is too long,
   ///           or `G2PProcessorError` if G2P processing fails
-  public func generateAudio(voice: MLXArray, language: Language, text: String, speed: Float = 1.0) throws -> ([Float], [MToken]?) {
-    // Update language if it has changed
-    try updateLanguageIfNeeded(language)
-
+  public func generateAudio(voice: MLXArray, phonemizedText: String, speed: Float = 1.0) throws -> [Float] {
     // Start performance timing
     BenchmarkTimer.reset()
     BenchmarkTimer.startTimer(Constants.bm_TTS)
-
-    // Step 1: Convert text to phonemes
-    let (phonemizedText, tokenArray) = try phonemizeText(text)
     
     // Step 2: Tokenize and prepare input
     let (paddedInputIds, attentionMask, inputLengths, textMask, inputIds) = try prepareInputTensors(phonemizedText)
@@ -192,7 +184,7 @@ public final class KokoroTTS {
     )
     
     // Step 5: Predict phoneme durations
-    let (predictedDurations, alignmentTarget) = predictDurations(
+    let (_, alignmentTarget) = predictDurations(
       features: durationFeatures,
       batchSize: paddedInputIds.shape[1],
       speed: speed
@@ -216,15 +208,10 @@ public final class KokoroTTS {
       s: acousticStyle
     )[0]
     
-    // Try to predict timestamp of each token if G2P processor returns tokens
-    if let tokenArray {
-      TimestampPredictor.preditTimestamps(tokens: tokenArray, predictionDuration: predictedDurations)
-    }
-    
     // Stop performance timing
     BenchmarkTimer.stopTimer(Constants.bm_TTS)
 
-    return (audio[0].asArray(Float.self), tokenArray)
+    return audio[0].asArray(Float.self)
   }
   
   /// Updates the G2P language if it differs from the current language.
