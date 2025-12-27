@@ -215,7 +215,7 @@ public final class KokoroTTS {
   }
   
   /// Updates the G2P language if it differs from the current language.
-  private func updateLanguageIfNeeded(_ language: Language) throws {
+  public func updateLanguageIfNeeded(_ language: Language) throws {
     guard chosenLanguage != language else { return }
     
     guard let g2pProcessor else {
@@ -227,7 +227,7 @@ public final class KokoroTTS {
   }
   
   /// Converts input text to phonemes using the G2P processor.
-  private func phonemizeText(_ text: String) throws -> (String, [MToken]?) {
+  public func phonemizeText(_ text: String) throws -> (String, [MToken]?) {
     let phonemizedOutput = try g2pProcessor?.process(input: text)
     guard let phonemizedOutput else {
       throw G2PProcessorError.processorNotInitialized
